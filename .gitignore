@@ -1,6 +1,10 @@
 node_modules/
 .wwebjs_auth/
+.wwebjs_cache/
+data/
 data.db
 data.db-wal
 data.db-shm
 .env
+npm
+npm start.bat
