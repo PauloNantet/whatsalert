@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remédio da Mãe - Bot WhatsApp</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💊</text></svg>">
+</head>
+<body>
+    <div id="app">
+        <header class="header">
+            <div class="header-content">
+                <span class="header-icon">💊</span>
+                <h1>Remédio da Mãe</h1>
+                <div class="status-bar">
+                    <span id="botStatus" class="status offline">● Desconectado</span>
+                    <button id="btnDisconnect" class="btn-disconnect" onclick="disconnectBot()" style="display:none;">🔌 Desconectar</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- QR Code Section -->
+        <div id="qrSection" class="qr-section" style="display:none;">
+            <h2>📱 Escaneie o QR Code</h2>
+            <p>Abra o WhatsApp → Dispositivos conectados → Conectar dispositivo</p>
+            <div id="qrCode" class="qr-container"></div>
+        </div>
+
+        <nav class="tabs">
+            <button class="tab active" data-tab="contatos">👨‍👩‍👧‍👦 Contatos</button>
+            <button class="tab" data-tab="remedios">💊 Remédios</button>
+            <button class="tab" data-tab="alertas">🔔 Alertas</button>
+            <button class="tab" data-tab="historico">📋 Histórico</button>
+        </nav>
+
+        <!-- Contatos -->
+        <section id="contatos" class="tab-content active">
+            <div class="section-header">
+                <h2>Contatos do Grupo</h2>
+                <button class="btn-add" onclick="openModal('modalContato')">+ Adicionar</button>
+            </div>
+            <div id="listaContatos" class="card-list"></div>
+        </section>
+
+        <!-- Remedios -->
+        <section id="remedios" class="tab-content">
+            <div class="section-header">
+                <h2>Remédios da Mãe</h2>
+                <button class="btn-add" onclick="openModal('modalRemedio')">+ Adicionar</button>
+            </div>
+            <div id="listaRemedios" class="card-list"></div>
+        </section>
+
+        <!-- Alertas -->
+        <section id="alertas" class="tab-content">
+            <div class="section-header">
+                <h2>Alertas Automáticos</h2>
+                <button class="btn-add" onclick="loadRemediosSelect(); openModal('modalAlerta')">+ Novo Alerta</button>
+            </div>
+            <div id="listaAlertas" class="card-list"></div>
+            <div class="alert-actions">
+                <button class="btn-send-all" onclick="sendNow()">📱 Enviar Alerta Agora</button>
+                <button class="btn-test" onclick="testSend()">🧪 Enviar Teste</button>
+            </div>
+        </section>
+
+        <!-- Historico -->
+        <section id="historico" class="tab-content">
+            <div class="section-header">
+                <h2>Histórico de Envios</h2>
+                <button class="btn-clear" onclick="clearHistory()">🗑️ Limpar</button>
+            </div>
+            <div id="listaHistorico" class="card-list"></div>
+        </section>
+    </div>
+
+    <!-- Modal: Contato -->
+    <div id="modalContato" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Adicionar Contato</h3>
+                <button class="modal-close" onclick="closeModal('modalContato')">&times;</button>
+            </div>
+            <form id="formContato" onsubmit="saveContato(event)">
+                <div class="form-group">
+                    <label>Nome *</label>
+                    <input type="text" id="contatoNome" required placeholder="Ex: João">
+                </div>
+                <div class="form-group">
+                    <label>Telefone *</label>
+                    <input type="tel" id="contatoTelefone" required placeholder="Ex: 11999998888">
+                    <small>DDD + Número (sem espaços)</small>
+                </div>
+                <div class="form-group">
+                    <label>Parentesco</label>
+                    <select id="contatoRelacao">
+                        <option value="irmão">Irmão</option>
+                        <option value="irmã">Irmã</option>
+                        <option value="sobrinho">Sobrinho(a)</option>
+                        <option value="outro">Outro</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn-submit">Salvar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Remédio -->
+    <div id="modalRemedio" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Adicionar Remédio</h3>
+                <button class="modal-close" onclick="closeModal('modalRemedio')">&times;</button>
+            </div>
+            <form id="formRemedio" onsubmit="saveRemedio(event)">
+                <div class="form-group">
+                    <label>Nome do Remédio *</label>
+                    <input type="text" id="remedioNome" required placeholder="Ex: Losartana">
+                </div>
+                <div class="form-group">
+                    <label>Dosagem</label>
+                    <input type="text" id="remedioDosagem" placeholder="Ex: 50mg">
+                </div>
+                <div class="form-group">
+                    <label>Instruções</label>
+                    <textarea id="remedioInstrucoes" rows="2" placeholder="Ex: Tomar com água, em jejum"></textarea>
+                </div>
+                <button type="submit" class="btn-submit">Salvar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Alerta -->
+    <div id="modalAlerta" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Novo Alerta</h3>
+                <button class="modal-close" onclick="closeModal('modalAlerta')">&times;</button>
+            </div>
+            <form id="formAlerta" onsubmit="saveAlerta(event)">
+                <div class="form-group">
+                    <label>Remédio *</label>
+                    <select id="alertaRemedio" required>
+                        <option value="">Selecione um remédio</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Horário *</label>
+                    <input type="time" id="alertaHorario" required>
+                </div>
+                <div class="form-group">
+                    <label>Repetir em</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox"><input type="checkbox" name="dias" value="0"> Dom</label>
+                        <label class="checkbox"><input type="checkbox" name="dias" value="1" checked> Seg</label>
+                        <label class="checkbox"><input type="checkbox" name="dias" value="2" checked> Ter</label>
+                        <label class="checkbox"><input type="checkbox" name="dias" value="3" checked> Qua</label>
+                        <label class="checkbox"><input type="checkbox" name="dias" value="4" checked> Qui</label>
+                        <label class="checkbox"><input type="checkbox" name="dias" value="5" checked> Sex</label>
+                        <label class="checkbox"><input type="checkbox" name="dias" value="6"> Sáb</label>
+                    </div>
+                </div>
+                <button type="submit" class="btn-submit">Salvar Alerta</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Editar Remédio -->
+    <div id="modalEditarRemedio" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Editar Remédio</h3>
+                <button class="modal-close" onclick="closeModal('modalEditarRemedio')">&times;</button>
+            </div>
+            <form id="formEditarRemedio" onsubmit="updateRemedio(event)">
+                <input type="hidden" id="editRemedioId">
+                <div class="form-group">
+                    <label>Nome do Remédio *</label>
+                    <input type="text" id="editRemedioNome" required>
+                </div>
+                <div class="form-group">
+                    <label>Dosagem</label>
+                    <input type="text" id="editRemedioDosagem">
+                </div>
+                <div class="form-group">
+                    <label>Instruções</label>
+                    <textarea id="editRemedioInstrucoes" rows="2"></textarea>
+                </div>
+                <button type="submit" class="btn-submit">Salvar Alterações</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Editar Alerta -->
+    <div id="modalEditarAlerta" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Editar Alerta</h3>
+                <button class="modal-close" onclick="closeModal('modalEditarAlerta')">&times;</button>
+            </div>
+            <form id="formEditarAlerta" onsubmit="updateAlerta(event)">
+                <input type="hidden" id="editAlertaId">
+                <div class="form-group">
+                    <label>Remédio *</label>
+                    <select id="editAlertaRemedio" required>
+                        <option value="">Selecione um remédio</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Horário *</label>
+                    <input type="time" id="editAlertaHorario" required>
+                </div>
+                <div class="form-group">
+                    <label>Repetir em</label>
+                    <div class="checkbox-group">
+                        <label class="checkbox"><input type="checkbox" name="editDias" value="0"> Dom</label>
+                        <label class="checkbox"><input type="checkbox" name="editDias" value="1"> Seg</label>
+                        <label class="checkbox"><input type="checkbox" name="editDias" value="2"> Ter</label>
+                        <label class="checkbox"><input type="checkbox" name="editDias" value="3"> Qua</label>
+                        <label class="checkbox"><input type="checkbox" name="editDias" value="4"> Qui</label>
+                        <label class="checkbox"><input type="checkbox" name="editDias" value="5"> Sex</label>
+                        <label class="checkbox"><input type="checkbox" name="editDias" value="6"> Sáb</label>
+                    </div>
+                </div>
+                <button type="submit" class="btn-submit">Salvar Alterações</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Modal: Confirmar Exclusão -->
+    <div id="modalConfirmDelete" class="modal">
+        <div class="modal-content modal-confirm-delete">
+            <div class="confirm-delete-icon">🗑️</div>
+            <h3 id="confirmDeleteTitle">Tem certeza?</h3>
+            <p id="confirmDeleteMsg">Esta ação não pode ser desfeita.</p>
+            <div class="confirm-delete-actions">
+                <button class="btn-cancel-delete" onclick="closeModal('modalConfirmDelete')">Cancelar</button>
+                <button class="btn-confirm-delete" id="btnConfirmDeleteAction">Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

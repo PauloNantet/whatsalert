@@ -1,0 +1,18 @@
+{
+  "name": "whatsalert-bot",
+  "version": "1.0.0",
+  "description": "Bot WhatsApp para alerta de remédios da mãe",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node src/index.js"
+  },
+  "dependencies": {
+    "whatsapp-web.js": "^1.26.0",
+    "node-cron": "^3.0.3",
+    "express": "^4.18.2",
+    "socket.io": "^4.7.4",
+    "qrcode-terminal": "^0.12.0",
+    "cors": "^2.8.5"
+  }
+}
