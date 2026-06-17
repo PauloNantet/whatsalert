@@ -43,7 +43,6 @@ function initBot(socketIo) {
         console.log('🔐 Autenticado com sucesso!');
         console.log('⏳ Aguardando conexão completa...');
 
-        // Verificar conexão manualmente pois o ready pode não disparar
         const checkReady = setInterval(async () => {
             try {
                 if (client.info) {
@@ -57,21 +56,12 @@ function initBot(socketIo) {
                 // Ainda não pronto, aguardar
             }
         }, 2000);
-
-        // Parar tentar após 30 segundos
-        setTimeout(() => clearInterval(checkReady), 30000);
     });
 
     client.on('auth_failure', (msg) => {
         console.error('❌ Falha na autenticação:', msg);
         botReady = false;
         if (io) io.emit('bot-status', { ready: false });
-    });
-
-    client.on('ready', () => {
-        console.log('✅ Bot WhatsApp CONECTADO e PRONTO!');
-        botReady = true;
-        if (io) io.emit('bot-status', { ready: true });
     });
 
     client.on('disconnected', (reason) => {

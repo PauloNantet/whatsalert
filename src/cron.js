@@ -33,6 +33,8 @@ async function sendAlertToAll(remedioNome, horario) {
     }
 
     const msg = buildMessage(remedioNome, horario);
+    let enviados = 0;
+    let erros = 0;
 
     for (const contato of contatos) {
         let phone = contato.telefone.replace(/\D/g, '');
@@ -46,6 +48,7 @@ async function sendAlertToAll(remedioNome, horario) {
                 mensagem: msg,
                 status: 'enviado'
             });
+            enviados++;
         } catch (err) {
             console.error(`❌ Erro ao enviar para ${contato.nome}:`, err.message);
             database.insert('historico', {
@@ -53,10 +56,13 @@ async function sendAlertToAll(remedioNome, horario) {
                 mensagem: msg,
                 status: 'erro'
             });
+            erros++;
         }
         // Small delay between messages
         await new Promise(r => setTimeout(r, 1500));
     }
+
+    console.log(`📊 Resultado envio: ${enviados} enviados, ${erros} erros`);
 }
 
 async function sendTestAlert() {
@@ -71,27 +77,41 @@ async function sendTestAlert() {
 function startCron() {
     // Check every minute
     cron.schedule('* * * * *', () => {
-        const now = new Date();
-        const currentTime = now.toTimeString().slice(0, 5); // "HH:MM"
-        const currentDay = now.getDay(); // 0-6
+        try {
+            const now = new Date();
+            const currentTime = now.toTimeString().slice(0, 5); // "HH:MM"
+            const currentDay = now.getDay(); // 0-6
 
-        console.log(`⏰ Verificando alertas... ${currentTime} (dia ${currentDay})`);
+            console.log(`⏰ Verificando alertas... ${currentTime} (dia ${currentDay})`);
 
-        const alertas = database.getAll('alertas');
-        const remedios = database.getAll('remedios');
+            if (!isReady()) {
+                console.log('⚠️ Bot não está pronto, pulando verificação');
+                return;
+            }
 
-        for (const alerta of alertas) {
-            if (!alerta.ativo) continue;
-            if (alerta.horario !== currentTime) continue;
-            if (!alerta.dias.includes(currentDay)) continue;
+            const alertas = database.getAll('alertas');
+            const remedios = database.getAll('remedios');
 
-            const remedio = remedios.find(r => r.id === alerta.remedio_id);
-            if (!remedio) continue;
+            for (const alerta of alertas) {
+                if (!alerta.ativo) continue;
+                if (alerta.horario !== currentTime) continue;
 
-            console.log(`🔔 Disparando alerta: ${remedio.nome} às ${alerta.horario}`);
-            sendAlertToAll(remedio.nome, alerta.horario).catch(err => {
-                console.error('Erro ao enviar alerta:', err.message);
-            });
+                let dias = alerta.dias;
+                if (typeof dias === 'string') {
+                    try { dias = JSON.parse(dias); } catch { dias = [0,1,2,3,4,5,6]; }
+                }
+                if (!dias.includes(currentDay)) continue;
+
+                const remedio = remedios.find(r => r.id === alerta.remedio_id);
+                if (!remedio) continue;
+
+                console.log(`🔔 Disparando alerta: ${remedio.nome} às ${alerta.horario}`);
+                sendAlertToAll(remedio.nome, alerta.horario).catch(err => {
+                    console.error('Erro ao enviar alerta:', err.message);
+                });
+            }
+        } catch (err) {
+            console.error('❌ Erro no cron job:', err.message);
         }
     });
 
